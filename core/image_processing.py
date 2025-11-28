@@ -1,0 +1,1 @@
+# Các hàm lọc nhiễu, tách nền (OpenCV)

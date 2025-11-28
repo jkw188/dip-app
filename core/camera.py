@@ -1,0 +1,1 @@
+# Class xử lý kết nối Camera

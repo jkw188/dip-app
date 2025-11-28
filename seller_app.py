@@ -1,0 +1,1 @@
+# Giao diện người bán (PyQt6/Tkinter)
