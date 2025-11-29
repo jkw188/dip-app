@@ -10,8 +10,11 @@ class Database:
             db_path, 
             check_same_thread=False # Khi làm việc với GUI có thể gây lỗi xử lý luồng dữ liệu
         )
+        self.conn.row_factory = sqlite3.Row
         self.conn.execute('PRAGMA FOREIGN_KEYS = 1') # bật foreign key
         self.cursor = self.conn.cursor()
+
+    def setup(self):
         self.create_tables()
         self.init_admin_account()
 
@@ -141,6 +144,10 @@ class Database:
         out.seek(0)
         return np.load(out)
     
+    # lấy kết nối
+    def get_connection(self):
+        return self.conn
+
     # đóng kết nối
     def close(self):
         self.conn.close()
@@ -169,8 +176,10 @@ class Database:
 
 # Phần test nhanh khi chạy trực tiếp file này
 if __name__ == "__main__":
-    db = Database()
-    # print("Database khởi tạo thành công tại: data/db/shop.db")
+    # Code khởi tạo db (chỉ cần chạy 1 lần)
+    init_db = Database()
+    init_db.setup()
+    init_db.close()
     
     # Test thử query hết hạn (sẽ rỗng vì chưa có dữ liệu)
-    print("Kiểm tra hàng hết hạn:", db.get_expiring_products())
+    print("Kiểm tra hàng hết hạn:", init_db.get_expiring_products())
