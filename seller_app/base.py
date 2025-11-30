@@ -11,6 +11,9 @@ if parent_dir not in sys.path:
 from core.database import Database
 from .product_dashboard import ProductDashboardFrame
 from .employee_dashboard import EmployeeDashboardFrame
+from .add_product import AddProductFrame
+from .add_employee import AddEmployeeFrame
+
 
 # --- CẤU HÌNH MÀU SẮC ---
 COLOR_BG_MAIN = "#F5F6FA"
@@ -129,6 +132,26 @@ class BaseApp(ctk.CTk):
         self.reset_switch_view()
         self.highlight_button(self.menu_buttons[1])
         self.views['employee_dashboard_frame'].grid(row=0, column=0, sticky="nsew")
+
+    def load_add_product_frame(self):
+        # Hàm này được gọi từ ProductDashboardFrame -> Button "New Product"
+        self.reset_switch_view()
+        self.highlight_button(self.menu_buttons[0]) # VẪN HIGHLIGHT NÚT PRODUCT
+        
+        if 'add_product_frame' not in self.views:
+            self.views['add_product_frame'] = AddProductFrame(self.view_container, self)
+            
+        self.views['add_product_frame'].grid(row=0, column=0, sticky="nsew")
+
+    def load_add_employee_frame(self):
+        self.reset_switch_view()
+        self.highlight_button(self.menu_buttons[1]) # Highlight nút "Employees"
+        
+        if 'add_employee_frame' not in self.views:
+            # Tạo view mới nếu chưa có
+            self.views['add_employee_frame'] = AddEmployeeFrame(self.view_container, self)
+            
+        self.views['add_employee_frame'].grid(row=0, column=0, sticky="nsew")
 
     def load_cashier_frame(self): pass 
     def load_history_frame(self): pass 

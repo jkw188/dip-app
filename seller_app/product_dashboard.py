@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from core.dao.product_dao import ProductDAO
 from math import ceil
+from .add_product import AddProductFrame
 
 class ProductDashboardFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
@@ -39,7 +40,7 @@ class ProductDashboardFrame(ctk.CTkFrame):
         self.entry_search.bind("<Return>", lambda e: self.search_product())
 
         ctk.CTkButton(right_group, text="Search", width=80, fg_color="#2D3436", command=self.search_product).pack(side="left", padx=5)
-        ctk.CTkButton(right_group, text="+ NEW PRODUCT", width=120, fg_color="#2D3436").pack(side="left")
+        ctk.CTkButton(right_group, text="+ NEW PRODUCT", width=120, fg_color="#2D3436", command=self.controller.load_add_product_frame).pack(side="left")
 
         # 2. TABLE AREA (Chứa Header Row + List Rows)
         self.table_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -187,3 +188,6 @@ class ProductDashboardFrame(ctk.CTkFrame):
     def delete_product(self, product):
         self.product_dao.delete(product.id)
         self.load_data()
+
+    def open_add_product(self):
+        AddProductWindow(self)

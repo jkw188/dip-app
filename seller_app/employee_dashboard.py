@@ -46,7 +46,7 @@ class EmployeeDashboardFrame(ctk.CTkFrame):
         self.entry_search.bind("<Return>", lambda e: self.search_employee())
 
         ctk.CTkButton(right_group, text="Search", width=80, fg_color="#2D3436", command=self.search_employee).pack(side="left", padx=5)
-        ctk.CTkButton(right_group, text="+ NEW EMPLOYEE", width=150, fg_color="#2D3436").pack(side="left")
+        ctk.CTkButton(right_group, text="+ NEW EMPLOYEE", width=150, fg_color="#2D3436", command=self.controller.load_add_employee_frame).pack(side="left")
 
         # 2. TABLE CONTAINER
         self.table_container = ctk.CTkFrame(self, fg_color="white", corner_radius=10)
