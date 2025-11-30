@@ -12,11 +12,12 @@ if parent_dir not in sys.path:
 
 from core.database import Database
 from core.dao.employee_dao import EmployeeDAO
-from seller_app.base import BaseApp
+# Lưu ý: Không cần import BaseApp ở đây nữa để tránh vòng lặp import và logic sai
 
 class LoginForm(ctk.CTk):
     def __init__(self):
         super().__init__()
+        self.current_user = None # Biến lưu user đăng nhập thành công
         self.initialize_components()
         self.initialize_style()
 
@@ -146,12 +147,13 @@ class LoginForm(ctk.CTk):
                     messagebox.showerror("Lỗi", "Tài khoản này đã bị vô hiệu hóa!")
                     return
 
-                self.destroy()
-                
-                app = BaseApp(current_user=employee)
-                app.mainloop()
+                # --- SỬA ĐỔI QUAN TRỌNG ---
+                # Thay vì mở BaseApp, ta lưu user và đóng form Login
+                self.current_user = employee
+                self.destroy() 
+                # --------------------------
             else:
                 messagebox.showerror("Lỗi", "Sai tên đăng nhập hoặc mật khẩu!")
         
         except Exception as e:
-            messagebox.showerror("Lỗi hệ thống", str(e)) 
+            messagebox.showerror("Lỗi hệ thống", str(e))

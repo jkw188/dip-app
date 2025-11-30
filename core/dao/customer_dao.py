@@ -1,6 +1,7 @@
 from .base_dao import BaseDAO
 from core.models.customer import Customer
 
+
 class CustomerDAO(BaseDAO):
     def select_all(self):
         self.cursor.execute("SELECT * FROM customers")
@@ -32,3 +33,35 @@ class CustomerDAO(BaseDAO):
     def delete(self, cus_id):
         self.cursor.execute("DELETE FROM customers WHERE id = ?", (cus_id,))
         self.commit()
+
+    def select_by_username(self, username):
+        """
+        Tìm khách hàng theo username.
+        Dùng cho chức năng Đăng nhập.
+        """
+        if self.conn is None:
+            return None
+            
+        # FIX: Bỏ dictionary=True để tránh lỗi TypeError với một số driver DB
+        cursor = self.conn.cursor()
+        try:
+            # FIX: Thay %s thành ? cho tương thích với SQLite
+            query = "SELECT id, username, password_hash, full_name, phone, address FROM customers WHERE username = ?"
+            cursor.execute(query, (username,))
+            row = cursor.fetchone()
+            
+            if row:
+                # Convert thủ công từ Tuple sang Dictionary dựa trên tên cột
+                columns = [col[0] for col in cursor.description]
+                row_dict = dict(zip(columns, row))
+                
+                # Sử dụng phương thức classmethod từ Model để tạo đối tượng
+                return Customer.from_row(row_dict)
+            
+            return None
+            
+        except Exception as e:
+            print(f"Error in select_by_username: {e}")
+            return None
+        finally:
+            cursor.close()

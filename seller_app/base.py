@@ -33,10 +33,13 @@ COLOR_ACCENT = "#2D3436"
 COLOR_HOVER = "#F1F2F6"
 
 class BaseApp(ctk.CTk):
-    def __init__(self, current_user):
+    def __init__(self, current_user): # Đã xóa tham số 'login'
         super().__init__()
+        # self.login = login  <-- Đã xóa dòng này
         self.current_user = current_user
         self.db = Database()
+        
+        self.is_logout = False # Cờ báo hiệu trạng thái logout
 
         self.initialize_components()
         self.initialize_style()
@@ -204,15 +207,6 @@ class BaseApp(ctk.CTk):
         self.views['edit_employee'].grid(row=0, column=0, sticky="nsew")
 
     def handle_logout(self):
+        # Đánh dấu cờ là Logout để main.py biết đường mở lại Login
+        self.is_logout = True
         self.destroy()
-        import subprocess
-        subprocess.Popen([sys.executable, os.path.join(parent_dir, "seller_app", "login.py")])
-
-if __name__ == "__main__":
-    from dataclasses import dataclass
-    @dataclass
-    class MockUser:
-        full_name: str = "Test Admin"
-        is_manager: bool = True
-    app = BaseApp(MockUser())
-    app.mainloop()

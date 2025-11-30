@@ -40,3 +40,23 @@ class ProductDAO(BaseDAO):
         # Xóa mềm: Cập nhật is_deleted = 1
         self.cursor.execute("UPDATE products SET is_deleted = 1 WHERE id = ?", (product_id,))
         self.commit()
+
+    def get_product_thumbnail(self, product_id):
+        """
+        Lấy đường dẫn ảnh thumbnail của sản phẩm.
+        Nếu không có thumbnail, lấy ảnh đầu tiên tìm thấy.
+        """
+        # Ưu tiên lấy ảnh được đánh dấu là thumbnail (is_thumbnail=1)
+        query = "SELECT image_path FROM product_images WHERE product_id = ? AND is_thumbnail = 1 LIMIT 1"
+        self.cursor.execute(query, (product_id,))
+        row = self.cursor.fetchone()
+        
+        if row:
+            return row['image_path']
+        
+        # Nếu không có thumbnail, lấy ảnh bất kỳ đầu tiên
+        query_fallback = "SELECT image_path FROM product_images WHERE product_id = ? LIMIT 1"
+        self.cursor.execute(query_fallback, (product_id,))
+        row_fallback = self.cursor.fetchone()
+        
+        return row_fallback['image_path'] if row_fallback else None
