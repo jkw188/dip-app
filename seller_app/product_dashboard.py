@@ -183,11 +183,8 @@ class ProductDashboardFrame(ctk.CTkFrame):
             self.render_table()
 
     def edit_product(self, product):
-        print(f"Edit: {product.name}")
+        self.controller.load_edit_product_frame(product)
 
     def delete_product(self, product):
         self.product_dao.delete(product.id)
         self.load_data()
-
-    def open_add_product(self):
-        AddProductWindow(self)

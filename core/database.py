@@ -21,7 +21,7 @@ class Database:
     def create_tables(self):
         # code tạo cơ sở dữ liệu
         sql_script = """
-            -- 1. Bảng Nhân viên (Dành cho App Người bán)
+            -- 1. Bảng Nhân viên
             CREATE TABLE IF NOT EXISTS employees (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -31,7 +31,7 @@ class Database:
                 status TEXT DEFAULT 'active'  -- 'active' hoặc 'resigned'
             );
 
-            -- 2. Bảng Khách hàng (Dành cho App Người mua)
+            -- 2. Bảng Khách hàng
             CREATE TABLE IF NOT EXISTS customers (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT UNIQUE NOT NULL,
@@ -41,39 +41,39 @@ class Database:
                 address TEXT
             );
 
-            -- 3. Bảng Sản phẩm (Thông tin chung)
-            -- shelf_life_days: Số ngày hết hạn (VD: 365). Dùng cộng với Ngày SX để ra hạn dùng.
+            -- 3. Bảng Sản phẩm
             CREATE TABLE IF NOT EXISTS products (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 name TEXT NOT NULL,
                 description TEXT,
-                supplier_info TEXT, -- Thông tin bảo mật
-                import_price REAL,  -- Thông tin bảo mật
+                supplier_info TEXT, 
+                import_price REAL,  
                 sale_price REAL NOT NULL,
                 stock_quantity INTEGER DEFAULT 0,
-                shelf_life_days INTEGER DEFAULT 0 
+                shelf_life_days INTEGER DEFAULT 0,
+                is_deleted INTEGER DEFAULT 0 -- Hỗ trợ xóa mềm
             );
 
-            -- 4. Bảng Hình ảnh sản phẩm (1 Sản phẩm - Nhiều ảnh)
+            -- 4. Bảng Hình ảnh sản phẩm
             CREATE TABLE IF NOT EXISTS product_images (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 product_id INTEGER NOT NULL,
-                image_path TEXT,      -- Đường dẫn file ảnh
-                feature_vector BLOB,  -- Vector đặc trưng từ MobileNetV2
-                is_thumbnail INTEGER DEFAULT 0, -- 1 nếu là ảnh đại diện chính
+                image_path TEXT,      
+                feature_vector BLOB,  
+                is_thumbnail INTEGER DEFAULT 0, 
                 FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE
             );
 
-            -- 5. Bảng Phiếu nhập (Import Receipts - Header)
+            -- 5. Bảng Phiếu nhập
             CREATE TABLE IF NOT EXISTS import_receipts (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 employee_id INTEGER,
                 import_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                is_confirm INTEGER DEFAULT 0, -- Trạng thái duyệt nhập kho
                 FOREIGN KEY (employee_id) REFERENCES employees(id)
             );
 
-            -- 6. Bảng Chi tiết nhập (Import Details) 
-            -- manufacturing_date: Ngày SX gắn liền với lô hàng này
+            -- 6. Bảng Chi tiết nhập
             CREATE TABLE IF NOT EXISTS import_details (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 receipt_id INTEGER,
@@ -84,9 +84,7 @@ class Database:
                 FOREIGN KEY (product_id) REFERENCES products(id)
             );
 
-            -- 7. Bảng Hóa đơn (Orders)
-            -- customer_id/employee_id có thể NULL tùy theo mua online hay tại quầy
-            -- ON DELETE SET NULL: Xóa user không làm mất hóa đơn
+            -- 7. Bảng Hóa đơn
             CREATE TABLE IF NOT EXISTS orders (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 customer_id INTEGER,
@@ -104,9 +102,19 @@ class Database:
                 order_id INTEGER,
                 product_id INTEGER,
                 quantity INTEGER,
-                unit_price REAL, -- Giá tại thời điểm bán
+                unit_price REAL, 
                 FOREIGN KEY (order_id) REFERENCES orders(id) ON DELETE CASCADE,
                 FOREIGN KEY (product_id) REFERENCES products(id)
+            );
+            
+            -- 9. Bảng Đơn nghỉ việc (Offboard Requests)
+             CREATE TABLE IF NOT EXISTS offboard_requests (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                employee_id INTEGER,
+                reason TEXT,
+                request_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                status TEXT DEFAULT 'pending', -- pending, approved, rejected
+                FOREIGN KEY (employee_id) REFERENCES employees(id)
             );
         """
         try:
@@ -152,34 +160,9 @@ class Database:
     def close(self):
         self.conn.close()
 
-
-    # Test query
-    def get_expiring_products(self):
-            """
-            Lấy danh sách các lô hàng sắp hết hạn.
-            Logic: Ngày hết hạn = Ngày SX (import_details) + Hạn dùng (products)
-            """
-            query = """
-                SELECT 
-                    p.name, 
-                    d.manufacturing_date, 
-                    p.shelf_life_days,
-                    date(d.manufacturing_date, '+' || p.shelf_life_days || ' days') as expiry_date,
-                    d.quantity
-                FROM import_details d
-                JOIN products p ON d.product_id = p.id
-                WHERE expiry_date IS NOT NULL
-                ORDER BY expiry_date ASC
-            """
-            self.cursor.execute(query)
-            return self.cursor.fetchall()
-
 # Phần test nhanh khi chạy trực tiếp file này
 if __name__ == "__main__":
     # Code khởi tạo db (chỉ cần chạy 1 lần)
     init_db = Database()
     init_db.setup()
     init_db.close()
-    
-    # Test thử query hết hạn (sẽ rỗng vì chưa có dữ liệu)
-    print("Kiểm tra hàng hết hạn:", init_db.get_expiring_products())

@@ -2,6 +2,7 @@ import customtkinter as ctk
 from datetime import datetime
 import os
 import sys
+from PIL import Image
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
@@ -9,13 +10,21 @@ if parent_dir not in sys.path:
     sys.path.append(parent_dir)
 
 from core.database import Database
+
+# Import tất cả Views
 from .product_dashboard import ProductDashboardFrame
 from .employee_dashboard import EmployeeDashboardFrame
+from .cashier import CashierFrame
+from .history import HistoryFrame
+from .import_product import ImportProductFrame
+from .off_board import OffBoardFrame
+
+# Import Edit Frames
 from .add_product import AddProductFrame
 from .add_employee import AddEmployeeFrame
+from .edit_product import EditProductFrame
+from .edit_employee import EditEmployeeFrame
 
-
-# --- CẤU HÌNH MÀU SẮC ---
 COLOR_BG_MAIN = "#F5F6FA"
 COLOR_BG_SIDEBAR = "#FFFFFF"
 COLOR_TEXT_MAIN = "#2D3436"
@@ -44,7 +53,25 @@ class BaseApp(ctk.CTk):
         self.sidebar_shadow = ctk.CTkFrame(self, width=260, corner_radius=0, fg_color='#E0E0E0')
         self.sidebar_frame = ctk.CTkFrame(self, width=260, corner_radius=0, fg_color=COLOR_BG_SIDEBAR)
         
-        self.lbl_logo = ctk.CTkLabel(self.sidebar_frame, text="🤖 LINDA", font=("Arial", 22, "bold"), text_color=COLOR_TEXT_MAIN)
+        logo_path = os.path.join(parent_dir, 'logo.jpg')
+        if os.path.exists(logo_path):
+            self.logo_image = ctk.CTkImage(
+                light_image=Image.open(logo_path),
+                dark_image=Image.open(logo_path),
+                size=(80, 80)
+            )
+        else:
+            self.logo_image = None 
+
+        self.lbl_logo = ctk.CTkLabel(
+            self.sidebar_frame,
+            text='LINDA',
+            image=self.logo_image,
+            compound='left',
+            font=('Arial', 40, 'bold'),
+            text_color='black',
+            padx=10
+        )
         self.lbl_time = ctk.CTkLabel(self.sidebar_frame, text=datetime.now().strftime("%d %b %Y"), font=("Arial", 14), text_color=COLOR_TEXT_SUB)
 
         self.menu_buttons = []
@@ -68,21 +95,15 @@ class BaseApp(ctk.CTk):
         self.btn_logout = ctk.CTkButton(self.info_frame, text="Logout", font=("Arial", 12), fg_color="transparent", text_color="#E17055", height=20, width=50, hover=False, anchor="w", command=self.handle_logout)
 
         self.main_area_frame = ctk.CTkFrame(self, corner_radius=0, fg_color=COLOR_BG_MAIN)
-        
-        # Grid Main Area: Cho phép con (view_container) giãn hết cỡ
         self.main_area_frame.grid_columnconfigure(0, weight=1)
         self.main_area_frame.grid_rowconfigure(0, weight=1)
 
         self.view_container = ctk.CTkFrame(self.main_area_frame, fg_color="transparent")
-        # Grid View Container: Cho phép View con giãn hết cỡ
         self.view_container.grid_columnconfigure(0, weight=1)
         self.view_container.grid_rowconfigure(0, weight=1)
         
         self.views = {}
-        # Truyền view_container và self (controller)
         self.views['product_dashboard_frame'] = ProductDashboardFrame(self.view_container, self)
-        self.views['employee_dashboard_frame'] = EmployeeDashboardFrame(self.view_container, self)
-
 
     def initialize_style(self):
         self.sidebar_shadow.place(x=2, y=0, relheight=1)
@@ -102,7 +123,6 @@ class BaseApp(ctk.CTk):
         self.btn_logout.pack(anchor="w")
 
         self.main_area_frame.grid(row=0, column=1, sticky="nsew")
-        # View Container dính chặt 4 góc
         self.view_container.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
 
         self.load_product_dashboard_frame()
@@ -121,42 +141,67 @@ class BaseApp(ctk.CTk):
     def highlight_button(self, btn):
         btn.configure(fg_color=COLOR_ACCENT, text_color="white")
 
-    def load_product_dashboard_frame(self):
+    def _load_frame(self, view_key, FrameClass, btn_index=None):
         self.reset_switch_view()
-        self.highlight_button(self.menu_buttons[0])
-        # QUAN TRỌNG: sticky="nsew" để ProductFrame dính chặt 4 góc container
-        self.views['product_dashboard_frame'].grid(row=0, column=0, sticky="nsew")
-        self.views['product_dashboard_frame'].load_data()
+        if btn_index is not None:
+            self.highlight_button(self.menu_buttons[btn_index])
+        
+        if view_key not in self.views:
+            self.views[view_key] = FrameClass(self.view_container, self)
+        
+        # CHỈ GỌI load_data() là đủ, vì các view class đã implement hàm này
+        if hasattr(self.views[view_key], 'load_data'):
+            self.views[view_key].load_data()
+
+        self.views[view_key].grid(row=0, column=0, sticky="nsew")
+
+    def load_product_dashboard_frame(self):
+        self._load_frame('product_dashboard_frame', ProductDashboardFrame, 0)
 
     def load_employee_dashboard_frame(self):
-        self.reset_switch_view()
-        self.highlight_button(self.menu_buttons[1])
-        self.views['employee_dashboard_frame'].grid(row=0, column=0, sticky="nsew")
+        self._load_frame('employee_dashboard_frame', EmployeeDashboardFrame, 1)
 
+    def load_cashier_frame(self):
+        self._load_frame('cashier_frame', CashierFrame, 2)
+
+    def load_history_frame(self):
+        self._load_frame('history_frame', HistoryFrame, 3)
+
+    def load_import_product_frame(self):
+        self._load_frame('import_product_frame', ImportProductFrame, 4)
+
+    def load_off_board_frame(self):
+        self._load_frame('off_board_frame', OffBoardFrame, 5)
+
+    # --- HÀM LOAD CÁC TRANG ADD/EDIT (Dùng lại highlight của trang cha) ---
     def load_add_product_frame(self):
-        # Hàm này được gọi từ ProductDashboardFrame -> Button "New Product"
         self.reset_switch_view()
-        self.highlight_button(self.menu_buttons[0]) # VẪN HIGHLIGHT NÚT PRODUCT
-        
-        if 'add_product_frame' not in self.views:
-            self.views['add_product_frame'] = AddProductFrame(self.view_container, self)
-            
-        self.views['add_product_frame'].grid(row=0, column=0, sticky="nsew")
+        self.highlight_button(self.menu_buttons[0])
+        if 'add_product' not in self.views:
+            self.views['add_product'] = AddProductFrame(self.view_container, self)
+        self.views['add_product'].grid(row=0, column=0, sticky="nsew")
 
     def load_add_employee_frame(self):
         self.reset_switch_view()
-        self.highlight_button(self.menu_buttons[1]) # Highlight nút "Employees"
-        
-        if 'add_employee_frame' not in self.views:
-            # Tạo view mới nếu chưa có
-            self.views['add_employee_frame'] = AddEmployeeFrame(self.view_container, self)
-            
-        self.views['add_employee_frame'].grid(row=0, column=0, sticky="nsew")
+        self.highlight_button(self.menu_buttons[1])
+        if 'add_employee' not in self.views:
+            self.views['add_employee'] = AddEmployeeFrame(self.view_container, self)
+        self.views['add_employee'].grid(row=0, column=0, sticky="nsew")
 
-    def load_cashier_frame(self): pass 
-    def load_history_frame(self): pass 
-    def load_import_product_frame(self): pass 
-    def load_off_board_frame(self): pass 
+    def load_edit_product_frame(self, product):
+        self.reset_switch_view()
+        self.highlight_button(self.menu_buttons[0])
+        # Luôn tạo mới frame edit để refresh data
+        if 'edit_product' in self.views: self.views['edit_product'].destroy()
+        self.views['edit_product'] = EditProductFrame(self.view_container, self, product)
+        self.views['edit_product'].grid(row=0, column=0, sticky="nsew")
+
+    def load_edit_employee_frame(self, emp):
+        self.reset_switch_view()
+        self.highlight_button(self.menu_buttons[1])
+        if 'edit_employee' in self.views: self.views['edit_employee'].destroy()
+        self.views['edit_employee'] = EditEmployeeFrame(self.view_container, self, emp)
+        self.views['edit_employee'].grid(row=0, column=0, sticky="nsew")
 
     def handle_logout(self):
         self.destroy()
@@ -168,5 +213,6 @@ if __name__ == "__main__":
     @dataclass
     class MockUser:
         full_name: str = "Test Admin"
+        is_manager: bool = True
     app = BaseApp(MockUser())
     app.mainloop()

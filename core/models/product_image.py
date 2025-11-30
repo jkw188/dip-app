@@ -20,3 +20,4 @@ class ProductImage:
             feature_vector=row['feature_vector'],
             is_thumbnail=bool(row['is_thumbnail'])
         )
+    

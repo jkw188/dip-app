@@ -188,9 +188,9 @@ class EmployeeDashboardFrame(ctk.CTkFrame):
             self.render_table()
 
     def edit_employee(self, emp):
-        print(f"Edit: {emp.username}")
+        self.controller.load_edit_employee_frame(emp)
 
     def lock_employee(self, emp):
-        print(f"Lock: {emp.username}")
-        # self.employee_dao.soft_delete(emp.id)
-        # self.load_data()
+        # print(f"Lock: {emp.username}")
+        self.employee_dao.soft_delete(emp.id)
+        self.load_data()
