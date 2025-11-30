@@ -31,8 +31,8 @@ class LoginForm(ctk.CTk):
 
         self.card_frame = ctk.CTkFrame(
             self,
-            width=400,
-            height=500,
+            width=320,
+            height=320,
             fg_color='white',
             corner_radius=20,
             border_width=0
@@ -48,7 +48,7 @@ class LoginForm(ctk.CTk):
             self.logo_image = ctk.CTkImage(
                 light_image=Image.open(logo_path),
                 dark_image=Image.open(logo_path),
-                size=(60, 60)
+                size=(80, 80)
             )
         else:
             self.logo_image = None 
@@ -58,7 +58,7 @@ class LoginForm(ctk.CTk):
             text='LINDA',
             image=self.logo_image,
             compound='left',
-            font=('Arial', 28, 'bold'),
+            font=('Arial', 40, 'bold'),
             text_color='black',
             padx=10
         )
@@ -72,8 +72,8 @@ class LoginForm(ctk.CTk):
 
         self.entry_username = ctk.CTkEntry(
             self.sub_card_frame,
-            width=300,
-            height=40,
+            width=280,
+            height=35,
             corner_radius=20,
             border_width=1,
             border_color='black',
@@ -91,8 +91,8 @@ class LoginForm(ctk.CTk):
 
         self.entry_password = ctk.CTkEntry(
             self.sub_card_frame,
-            width=300,
-            height=40,
+            width=280,
+            height=35,
             corner_radius=20,
             border_color='black',
             border_width=1,
@@ -107,9 +107,9 @@ class LoginForm(ctk.CTk):
         self.btn_login = ctk.CTkButton(
             self.sub_card_frame,
             text='LOGIN',
-            width=300,
-            height=45,
-            corner_radius=22,
+            width=280,
+            height=30,
+            corner_radius=12,
             fg_color='black',
             text_color='white',
             font=('Arial', 14, 'bold'),
@@ -120,18 +120,13 @@ class LoginForm(ctk.CTk):
     def initialize_style(self):
         self.card_frame.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
         self.card_frame.pack_propagate(False) 
-
         self.sub_card_frame.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
-
-        self.lbl_title.pack(pady=(0, 40))
-
+        self.lbl_title.pack(pady=(0, 5))
         self.lbl_username.pack(anchor='w', padx=10, pady=(0, 5))
-        self.entry_username.pack(pady=(0, 20))
-
+        self.entry_username.pack(pady=(0, 5))
         self.lbl_password.pack(anchor='w', padx=10, pady=(0, 5))
-        self.entry_password.pack(pady=(0, 40))
-
-        self.btn_login.pack(pady=(0, 10))
+        self.entry_password.pack(pady=(0, 5))
+        self.btn_login.pack(pady=(0, 5))
 
     def handle_login(self):
         username = self.entry_username.get().strip()
@@ -159,4 +154,4 @@ class LoginForm(ctk.CTk):
                 messagebox.showerror("Lỗi", "Sai tên đăng nhập hoặc mật khẩu!")
         
         except Exception as e:
-            messagebox.showerror("Lỗi hệ thống", str(e))
+            messagebox.showerror("Lỗi hệ thống", str(e)) 
