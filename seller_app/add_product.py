@@ -5,7 +5,7 @@ import os
 import shutil
 import sys
 
-# Xử lý import
+# Xử lý import đường dẫn
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.dirname(current_dir)
 if parent_dir not in sys.path:
@@ -15,6 +15,8 @@ from core.dao.product_dao import ProductDAO
 from core.dao.product_image_dao import ProductImageDAO
 from core.models.product import Product
 from core.models.product_image import ProductImage
+# --- IMPORT QUAN TRỌNG: AI Model ---
+from core.ai_model import FeatureExtractor
 
 class AddProductFrame(ctk.CTkFrame):
     def __init__(self, parent, controller):
@@ -25,6 +27,15 @@ class AddProductFrame(ctk.CTkFrame):
         self.product_dao = ProductDAO(self.db_conn)
         self.image_dao = ProductImageDAO(self.db_conn)
         
+        # --- KHỞI TẠO AI MODEL ---
+        # Load model MobileNetV2 ngay khi mở màn hình này
+        # (Có thể mất 1-2 giây lần đầu, nhưng giúp tìm kiếm sau này)
+        try:
+            self.feature_extractor = FeatureExtractor()
+        except Exception as e:
+            print(f"Warning: Không thể tải AI Model: {e}")
+            self.feature_extractor = None
+
         self.selected_image_path = None
         
         # Grid Layout chính
@@ -104,6 +115,7 @@ class AddProductFrame(ctk.CTkFrame):
             return
 
         try:
+            # 1. Lưu thông tin sản phẩm cơ bản
             new_prod = Product(
                 id=0,
                 name=name,
@@ -117,20 +129,39 @@ class AddProductFrame(ctk.CTkFrame):
             
             prod_id = self.product_dao.insert(new_prod)
             
+            # 2. Xử lý ảnh và Vector AI
             if self.selected_image_path:
+                # Tạo đường dẫn lưu file
                 dest_dir = os.path.join(parent_dir, "data", "images")
                 os.makedirs(dest_dir, exist_ok=True)
                 ext = os.path.splitext(self.selected_image_path)[1]
                 new_filename = f"prod_{prod_id}{ext}"
-                shutil.copy(self.selected_image_path, os.path.join(dest_dir, new_filename))
+                dest_path = os.path.join(dest_dir, new_filename)
                 
+                # Copy ảnh vào thư mục data
+                shutil.copy(self.selected_image_path, dest_path)
+                
+                # --- TÍNH TOÁN VECTOR ĐẶC TRƯNG ---
+                vector_blob = None
+                if self.feature_extractor:
+                    try:
+                        print("Đang tính toán vector AI cho sản phẩm mới...")
+                        pil_img = Image.open(dest_path)
+                        vector = self.feature_extractor.extract(pil_img)
+                        vector_blob = vector.tobytes() # Chuyển thành bytes để lưu vào DB
+                        print("Đã tạo vector thành công!")
+                    except Exception as e:
+                        print(f"Lỗi tạo vector AI: {e}")
+
+                # Lưu thông tin ảnh + Vector vào DB
                 self.image_dao.insert(ProductImage(
                     id=0, product_id=prod_id, 
                     image_path=f"data/images/{new_filename}", 
+                    feature_vector=vector_blob, # Cột này rất quan trọng cho việc tìm kiếm
                     is_thumbnail=True
                 ))
 
-            messagebox.showinfo("Success", "Product added!")
+            messagebox.showinfo("Success", "Product added successfully!")
             self.go_back() # Quay về Dashboard và reload
 
         except Exception as e:

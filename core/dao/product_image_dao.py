@@ -1,5 +1,6 @@
 from .base_dao import BaseDAO
 from core.models.product_image import ProductImage
+import numpy as np
 
 class ProductImageDAO(BaseDAO):
     def select_all(self):
@@ -27,3 +28,28 @@ class ProductImageDAO(BaseDAO):
     def delete(self, img_id):
         self.cursor.execute("DELETE FROM product_images WHERE id = ?", (img_id,))
         self.commit()
+
+    def select_all_vectors(self):
+        """
+        Lấy toàn bộ vector đặc trưng từ database để phục vụ tìm kiếm AI.
+        Output: List các tuple (product_id, numpy_vector)
+        """
+        # Chỉ lấy những dòng có vector (feature_vector IS NOT NULL)
+        self.cursor.execute("SELECT product_id, feature_vector FROM product_images WHERE feature_vector IS NOT NULL")
+        rows = self.cursor.fetchall()
+        
+        results = []
+        for row in rows:
+            pid = row['product_id']
+            blob = row['feature_vector']
+            
+            # Convert BLOB binary trở lại thành Numpy Array
+            if blob:
+                try:
+                    # np.frombuffer giúp đọc chuỗi bytes thành array cực nhanh
+                    vec = np.frombuffer(blob, dtype=np.float32)
+                    results.append((pid, vec))
+                except Exception as e:
+                    print(f"Lỗi convert vector cho sản phẩm {pid}: {e}")
+                    
+        return results

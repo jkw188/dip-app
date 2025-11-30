@@ -14,6 +14,8 @@ from core.dao.product_dao import ProductDAO
 from core.dao.product_image_dao import ProductImageDAO
 from core.models.product import Product
 from core.models.product_image import ProductImage
+# --- IMPORT AI ---
+from core.ai_model import FeatureExtractor
 
 class EditProductFrame(ctk.CTkFrame):
     def __init__(self, parent, controller, product_data):
@@ -24,6 +26,13 @@ class EditProductFrame(ctk.CTkFrame):
         
         self.product_dao = ProductDAO(self.db_conn)
         self.image_dao = ProductImageDAO(self.db_conn)
+        
+        # --- KHỞI TẠO AI MODEL ---
+        try:
+            self.feature_extractor = FeatureExtractor()
+        except Exception as e:
+            print(f"Warning: AI Model Error: {e}")
+            self.feature_extractor = None
         
         self.selected_image_path = None
         
@@ -136,6 +145,7 @@ class EditProductFrame(ctk.CTkFrame):
             return
 
         try:
+            # 1. Update thông tin cơ bản
             self.product_data.name = name
             self.product_data.import_price = float(self.entry_import_price.get() or 0)
             self.product_data.sale_price = float(sale_price)
@@ -146,23 +156,41 @@ class EditProductFrame(ctk.CTkFrame):
             
             self.product_dao.update(self.product_data)
             
+            # 2. Update ảnh nếu có thay đổi
             if self.selected_image_path:
                 dest_dir = os.path.join(parent_dir, "data", "images")
                 os.makedirs(dest_dir, exist_ok=True)
                 ext = os.path.splitext(self.selected_image_path)[1]
                 new_filename = f"prod_{self.product_data.id}{ext}"
+                dest_path = os.path.join(dest_dir, new_filename)
                 
-                shutil.copy(self.selected_image_path, os.path.join(dest_dir, new_filename))
+                # Copy file mới đè lên file cũ hoặc tạo mới
+                shutil.copy(self.selected_image_path, dest_path)
                 
+                # Xóa record ảnh cũ trong DB nếu có
                 current_img = self.image_dao.select_thumbnail(self.product_data.id)
                 new_path = f"data/images/{new_filename}"
                 
                 if current_img:
                     self.image_dao.delete(current_img.id)
                 
+                # --- TÍNH TOÁN VECTOR MỚI (QUAN TRỌNG) ---
+                vector_blob = None
+                if self.feature_extractor:
+                    try:
+                        print("Đang tính toán lại vector AI cho sản phẩm cập nhật...")
+                        pil_img = Image.open(dest_path)
+                        vector = self.feature_extractor.extract(pil_img)
+                        vector_blob = vector.tobytes()
+                        print("Vector cập nhật thành công!")
+                    except Exception as e:
+                        print(f"Lỗi tính toán vector: {e}")
+
+                # Insert record ảnh mới kèm vector
                 self.image_dao.insert(ProductImage(
                     id=0, product_id=self.product_data.id, 
                     image_path=new_path, 
+                    feature_vector=vector_blob, 
                     is_thumbnail=True
                 ))
 
